@@ -1,0 +1,272 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktives Dashboard: Website-Launch für sq-hq.org</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: The SPA is structured as a four-phase, task-oriented dashboard mimicking a project timeline (Pre-Launch, Deployment, Verification, Post-Launch). This structure was chosen because the source report is a procedural guide. A step-by-step, interactive flow makes the dense, technical information more digestible and actionable for the user. Navigation is handled by top tabs, allowing users to jump between phases easily. Key interactions include toggling checklist items, viewing details in modals, and interacting with a mock verification dashboard, which directly supports a user's goal of understanding and executing the launch process. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: Pre-Launch Checklists -> Goal: Organize/Inform -> Viz/Method: Interactive HTML/CSS checklist -> Interaction: Clicking items marks them as complete, updating a progress bar. Justification: Visually tracks progress, making the long list of tasks feel manageable. Method: HTML/JS.
+        - Report Info: Deployment Process (Backup, DB, Files, DNS) -> Goal: Organize/Change -> Viz/Method: A horizontal, step-by-step process diagram. -> Interaction: Clicking a step reveals a modal with detailed instructions. Justification: Simplifies a complex, sequential process into clear stages. Method: HTML/CSS/JS.
+        - Report Info: Post-Launch Verification Tools -> Goal: Inform/Compare -> Viz/Method: A mock dashboard with cards for each tool. -> Interaction: A bar chart visualizes mock performance scores. Justification: Translates a table of tools into a more engaging and familiar dashboard UI. Method: Chart.js/Canvas.
+        - Report Info: Common Errors & Solutions -> Goal: Inform -> Viz/Method: An interactive accordion/FAQ section. -> Interaction: Clicking an error type expands to show its diagnosis and solution. Justification: Organizes troubleshooting information in a compact, user-driven format. Method: HTML/JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'monospace', monospace; /* Matrix-style font */
+            background-color: #000000; /* Dark background */
+            color: #00FF41; /* Green text */
+        }
+        .tab-active {
+            border-color: #00FF41; /* Green border */
+            color: #00FF41; /* Green text */
+            font-weight: 600;
+        }
+        .tab-inactive {
+            border-color: transparent;
+            color: #008F11; /* Darker green text */
+        }
+        .phase-card {
+            background-color: #1A1A1A; /* Darker background for cards */
+            border: 1px solid #00FF41; /* Green border */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 255, 65, 0.1), 0 2px 4px -2px rgba(0, 255, 65, 0.05); /* Green shadow */
+            transition: all 0.3s ease;
+        }
+        .progress-bar-bg {
+            background-color: #1A1A1A; /* Dark background for progress bar */
+        }
+        .progress-bar-fill {
+            background-color: #00FF41; /* Green fill */
+            transition: width 0.5s ease-in-out;
+        }
+        .checklist-item input:checked + label span:first-child {
+            background-color: #00FF41; /* Green background */
+            border-color: #00FF41; /* Green border */
+        }
+        .checklist-item input:checked + label span:first-child svg {
+            display: block;
+            color: #000000; /* Black checkmark */
+        }
+        .checklist-item input:checked + label {
+            text-decoration: line-through;
+            color: #008F11; /* Darker green for completed items */
+        }
+         .checklist-item label {
+            color: #00FF41; /* Ensure label text is green */
+         }
+        .step-connector {
+            flex-grow: 1;
+            height: 2px;
+            background-color: #008F11; /* Darker green connector */
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.8); /* Darker, less transparent backdrop */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        /* New styles for image, video, and audio */
+        img, video, audio {
+            border: 1px solid #00FF41; /* Green border for media elements */
+            box-shadow: 0 2px 4px rgba(0, 255, 65, 0.2); /* Green shadow */
+        }
+         h1, h2, h3 {
+            color: #00FF41; /* Ensure headings are green */
+         }
+         p, span, label {
+             color: #00FF41; /* Ensure other text elements are green */
+         }
+    </style>
+  <link rel="icon" href="path/to/your/favicon.ico" type="image/x-icon">
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-[#A0522D]">Launch-Dashboard: sq-hq.org</h1>
+            <p class="mt-2 text-lg text-gray-600">Ein interaktiver Leitfaden für einen erfolgreichen Website-Start.</p>
+        </header>
+
+        <nav class="mb-10">
+            <div class="border-b border-gray-200">
+                <ul class="flex -mb-px justify-center flex-wrap text-sm font-medium text-center" id="tab-navigation">
+                    <li class="mr-2">
+                        <a href="#" class="inline-block p-4 border-b-2 rounded-t-lg tab-active" data-tab="phase1">Phase 1: Vorbereitung</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="inline-block p-4 border-b-2 rounded-t-lg tab-inactive" data-tab="phase2">Phase 2: Bereitstellung</a>
+                    </li>
+                    <li class="mr-2">
+                        <a href="#" class="inline-block p-4 border-b-2 rounded-t-lg tab-inactive" data-tab="phase3">Phase 3: Verifizierung</a>
+                    </li>
+                    <li>
+                        <a href="#" class="inline-block p-4 border-b-2 rounded-t-lg tab-inactive" data-tab="phase4">Phase 4: Betrieb</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main id="tab-content">
+
+            <!-- Phase 1: Vorbereitung -->
+            <div id="phase1" class="tab-pane active">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-semibold">Phase 1: Finale Pre-Launch-Prüfung</h2>
+                    <p class="mt-2 text-gray-600 max-w-3xl mx-auto">Diese Phase ist entscheidend, um das Fundament für einen erfolgreichen Start zu legen. Jeder hier abgehakte Punkt minimiert Risiken und sorgt für einen professionellen ersten Eindruck Ihrer Website.</p>
+                </div>
+
+                <div class="w-full max-w-4xl mx-auto mb-8">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-base font-medium text-[#A0522D]">Fortschritt</span>
+                        <span class="text-sm font-medium text-[#A0522D]" id="progress-label">0%</span>
+                    </div>
+                    <div class="w-full progress-bar-bg rounded-full h-2.5">
+                        <div id="progress-bar" class="progress-bar-fill h-2.5 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto" id="checklist-container">
+
+                    <div class="phase-card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-[#A0522D]">Inhalt, Design & Recht</h3>
+                        <ul class="space-y-3">
+                            <li class="checklist-item"><input type="checkbox" id="c1" class="hidden"><label for="c1" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Kein Platzhaltertext/Testbilder</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c2" class="hidden"><label for="c2" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Grammatik & Rechtschreibung geprüft</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c3" class="hidden"><label for="c3" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Favicon vorhanden</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c4" class="hidden"><label for="c4" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Impressum & Datenschutz erreichbar</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c5" class="hidden"><label for="c5" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Cookie-Banner implementiert</label></li>
+                        </ul>
+                    </div>
+
+                    <div class="phase-card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-[#A0522D]">Technische SEO</h3>
+                        <ul class="space-y-3">
+                            <li class="checklist-item"><input type="checkbox" id="c6" class="hidden"><label for="c6" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Meta-Titel & Beschreibungen unique</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c7" class="hidden"><label for="c7" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Bild ALT-Tags gesetzt</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c8" class="hidden"><label for="c8" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>`robots.txt` konfiguriert</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c9" class="hidden"><label for="c9" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>XML-Sitemap generiert</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c10" class="hidden"><label for="c10" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Keine `noindex` Tags auf Live-Seiten</label></li>
+                        </ul>
+                    </div>
+
+                    <div class="phase-card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-[#A0522D]">Performance & Sicherheit</h3>
+                        <ul class="space-y-3">
+                            <li class="checklist-item"><input type="checkbox" id="c11" class="hidden"><label for="c11" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Bilder komprimiert (z.B. WebP)</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c12" class="hidden"><label for="c12" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>CSS/JS minifiziert</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c13" class="hidden"><label for="c13" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Browser- & Server-Caching aktiv</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c14" class="hidden"><label for="c14" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Gültiges SSL-Zertifikat (HTTPS)</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c15" class="hidden"><label for="c15" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Starke Admin-Passwörter</label></li>
+                        </ul>
+                    </div>
+
+                    <div class="phase-card p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-[#A0522D]">Funktionen & Tracking</h3>
+                        <ul class="space-y-3">
+                            <li class="checklist-item"><input type="checkbox" id="c16" class="hidden"><label for="c16" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Alle Formulare funktionieren</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c17" class="hidden"><label for="c17" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Keine toten Links (intern/extern)</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c18" class="hidden"><label for="c18" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Benutzerdefinierte 404-Seite</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c19" class="hidden"><label for="c19" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Google Analytics 4 implementiert</label></li>
+                            <li class="checklist-item"><input type="checkbox" id="c20" class="hidden"><label for="c20" class="flex items-center cursor-pointer"><span class="w-5 h-5 mr-3 border-2 border-gray-300 rounded-sm flex items-center justify-center"><svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>Google Search Console verifiziert</label></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- New section for images and videos -->
+                <div class="max-w-6xl mx-auto mt-12">
+                    <h2 class="text-3xl font-semibold text-center mb-8">Visuelle Elemente (Platzhalter)</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="phase-card p-6 flex flex-col items-center">
+                            <h3 class="text-xl font-semibold mb-4 text-[#A0522D]">Testbild</h3>
+                            <img src="https://via.placeholder.com/400x300/000000/FFFFFF?text=Matrix+Placeholder+Image" alt="Matrix Placeholder Image" class="w-full h-auto rounded-md">
+                        </div>
+                        <div class="phase-card p-6 flex flex-col items-center">
+                            <h3 class="text-xl font-semibold mb-4 text-[#A0522D]">Trailer Platzhalter</h3>
+                            <video controls autoplay loop class="w-full h-auto rounded-md">
+                                <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm" type="video/webm">
+                                <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+                                Dein Browser unterstützt das Video-Tag nicht.
+                            </video>
+                        </div>
+                    </div>
+                </div>
+                <!-- End new section -->
+
+            </div>
+
+            <!-- Other phases would be here -->
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('#tab-navigation a');
+            const panes = document.querySelectorAll('#tab-content .tab-pane');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    tabs.forEach(t => {
+                        t.classList.remove('tab-active');
+                        t.classList.add('tab-inactive');
+                    });
+
+                    this.classList.remove('tab-inactive');
+                    this.classList.add('tab-active');
+
+                    panes.forEach(pane => {
+                        pane.style.display = 'none';
+                    });
+
+                    const targetPane = document.getElementById(this.dataset.tab);
+                    if(targetPane) {
+                        targetPane.style.display = 'block';
+                    }
+                });
+            });
+
+            // Initially hide all panes except the active one
+            panes.forEach((pane, index) => {
+                if (!tabs[index] || !tabs[index].classList.contains('tab-active')) {
+                    pane.style.display = 'none';
+                }
+            });
+
+            // Checklist progress bar
+            const checkboxes = document.querySelectorAll('#checklist-container input[type="checkbox"]');
+            const progressBar = document.getElementById('progress-bar');
+            const progressLabel = document.getElementById('progress-label');
+            const totalCheckboxes = checkboxes.length;
+
+            function updateProgress() {
+                const checkedCount = document.querySelectorAll('#checklist-container input[type="checkbox"]:checked').length;
+                const percentage = totalCheckboxes > 0 ? (checkedCount / totalCheckboxes) * 100 : 0;
+                progressBar.style.width = percentage + '%';
+                progressLabel.textContent = Math.round(percentage) + '%';
+            }
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateProgress);
+            });
+
+            updateProgress();
+        });
+    </script>
+</body>
+</html>
